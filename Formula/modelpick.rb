@@ -2,7 +2,6 @@
 class Modelpick < Formula
   desc "Picks an LLM subscription, account, model and thinking level from live usage"
   homepage "https://github.com/meatlover/modelpick"
-  version "0.4.0"
   license "MIT"
 
   on_macos do

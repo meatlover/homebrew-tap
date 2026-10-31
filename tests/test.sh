@@ -28,7 +28,6 @@ for p in darwin_arm64 darwin_amd64 linux_arm64 linux_amd64; do
   got=$(grep -A1 "/v9.8.7/modelpick_9.8.7_$p.tar.gz\"" "$f" | sed -n 's/.*sha256 "\(.*\)"/\1/p')
   [ "$got" = "$want" ] || fail "complete $p" "sha256 after its url is '$got', want '$want'"
 done
-grep -q '^  version "9.8.7"$' "$f" || fail complete "no version line 9.8.7"
 grep -q 'file://' "$f" && fail complete "fixture base leaked into the formula"
 ruby -c "$f" >/dev/null 2>&1 || fail complete "formula is not valid Ruby"
 

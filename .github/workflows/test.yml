@@ -17,12 +17,13 @@ jobs:
       # The committed formula is exactly what the script writes for its
       # release, so nobody hand-edits it.
       - run: |
-          tag=v$(sed -n 's/^  version "\(.*\)"$/\1/p' Formula/modelpick.rb)
+          tag=$(sed -n 's|.*/releases/download/\(v[^/]*\)/.*|\1|p' Formula/modelpick.rb | head -1)
           bash scripts/update-formula.sh "$tag"
           git diff --exit-code Formula/
 
   brew:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
