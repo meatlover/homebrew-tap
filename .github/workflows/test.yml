@@ -1,0 +1,33 @@
+name: test
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  generator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash tests/test.sh
+      # The committed formula is exactly what the script writes for its
+      # release, so nobody hand-edits it.
+      - run: |
+          tag=v$(sed -n 's/^  version "\(.*\)"$/\1/p' Formula/modelpick.rb)
+          bash scripts/update-formula.sh "$tag"
+          git diff --exit-code Formula/
+
+  brew:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: bash scripts/brew-check.sh

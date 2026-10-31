@@ -1,0 +1,62 @@
+name: update
+
+# Hourly: point the formula at modelpick's latest release. A new release
+# reaches `brew upgrade` within about an hour; Run workflow does it now.
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: update
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Write the formula for the latest release
+        id: formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The latest release excludes prereleases and drafts.
+          tag=$(gh release view -R meatlover/modelpick --json tagName -q .tagName)
+          bash scripts/update-formula.sh "$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if git diff --quiet Formula/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Commit it
+        if: steps.formula.outputs.changed == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -q -m "modelpick ${{ steps.formula.outputs.tag }}" Formula/modelpick.rb
+      # A push made with this token starts no other workflow, so the install
+      # test runs here, before the push.
+      - name: Install and test it
+        if: steps.formula.outputs.changed == 'true'
+        run: bash scripts/brew-check.sh
+      - name: Push it
+        if: steps.formula.outputs.changed == 'true'
+        run: git push origin HEAD:main
+      # GitHub disables a public repository's scheduled workflows after 60
+      # days with no commits. Without a modelpick release for 50 days, an
+      # empty commit keeps this schedule running.
+      - name: Keep the schedule enabled
+        if: steps.formula.outputs.changed == 'false'
+        run: |
+          age=$(( $(date +%s) - $(git log -1 --format=%ct) ))
+          if [ "$age" -gt $((50 * 86400)) ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -q --allow-empty -m "keep the hourly update schedule enabled"
+            git push origin HEAD:main
+          fi
