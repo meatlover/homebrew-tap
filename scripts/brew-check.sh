@@ -22,3 +22,5 @@ brew install meatlover/tap/modelpick
 brew test meatlover/tap/modelpick
 brew audit --strict meatlover/tap/modelpick
 brew style meatlover/tap/modelpick
+# modelpick's getting-started guide names this path.
+test -f "$(brew --prefix)/share/modelpick/config.example.json"
